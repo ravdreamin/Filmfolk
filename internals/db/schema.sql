@@ -17,9 +17,8 @@ CREATE TYPE review_status AS ENUM (
 );
 
 
--- =================================================================
+
 -- USERS TABLE: Manages user accounts and roles
--- =================================================================
 
 CREATE TABLE users (
     id BIGSERIAL PRIMARY KEY,
@@ -35,9 +34,9 @@ COMMENT ON TABLE users IS 'Stores user account information, including authentica
 COMMENT ON COLUMN users.role IS 'Defines the access level of the user (user, moderator, admin).';
 
 
--- =================================================================
+
 -- MOVIES TABLE: The central catalog of movies with moderation
--- =================================================================
+
 
 CREATE TABLE movies (
     id BIGSERIAL PRIMARY KEY,
@@ -60,9 +59,7 @@ COMMENT ON COLUMN movies.external_api_id IS 'Stores the unique ID from an extern
 COMMENT ON COLUMN movies.status IS 'Tracks the moderation status of a movie entry.';
 
 
--- =================================================================
 -- REVIEWS TABLE: Connects users and movies, with content moderation
--- =================================================================
 
 CREATE TABLE reviews (
     id BIGSERIAL PRIMARY KEY,
@@ -89,9 +86,7 @@ COMMENT ON COLUMN reviews.status IS 'Tracks the moderation status of a review, m
 COMMENT ON CONSTRAINT rating_check ON reviews IS 'Ensures review ratings are between 1 and 10.';
 
 
--- =================================================================
 -- INDEXES: Improve query performance on frequently searched columns
--- =================================================================
 
 -- Create indexes on foreign key columns for faster joins.
 CREATE INDEX ON reviews (user_id);
