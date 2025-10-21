@@ -7,9 +7,9 @@ import (
 type MovieStatus string
 
 const (
-	StatusPendingApproval MovieStatus = "pending_approval"
-	StatusApproved        MovieStatus = "approved"
-	StatusSuspended        MovieStatus = "suspended"
+	MovieStatusPendingApproval MovieStatus = "pending_approval"
+	MovieStatusApproved        MovieStatus = "approved"
+	MovieStatusRejected        MovieStatus = "rejected"
 )
 
 type Movie struct {
@@ -19,7 +19,7 @@ type Movie struct {
 	Genre         string      `gorm:"column:genre"`
 	Summary       string      `gorm:"column:summary"`
 	ExternalApiID string      `gorm:"column:external_api_id;unique"`
-	Status        MovieStatus `gorm:"type:movie_status;not null;default:pending_approval"`
+	Status        MovieStatus `gorm:"type:movie_status;not null;default:'pending_approval'"`
 	CreatedAt     time.Time   `gorm:"column:created_at"`
 	UpdatedAt     time.Time   `gorm:"column:updated_at"`
 }

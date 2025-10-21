@@ -7,9 +7,9 @@ import (
 type ReviewStatus string
 
 const (
-    StatusPendingModeration ReviewStatus = "pending_moderation"
-    StatusPublished         ReviewStatus = "published"
-    StatusRejected          ReviewStatus = "rejected"
+    ReviewStatusPendingModeration ReviewStatus = "pending_moderation"
+    ReviewStatusPublished         ReviewStatus = "published"
+    ReviewStatusRejected          ReviewStatus = "rejected"
 )
 
 // Review represents the reviews table and its relationships.
@@ -20,7 +20,7 @@ type Review struct {
     Rating      int          `gorm:"not null"`
     ReviewText  string       `gorm:"not null"`
     Sentiment   string
-    Status      ReviewStatus `gorm:"type:review_status;not null;default:published"`
+    Status      ReviewStatus `gorm:"type:review_status;not null;default:'published'"`
     CreatedAt   time.Time
     UpdatedAt   time.Time
 
