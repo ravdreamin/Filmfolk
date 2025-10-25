@@ -1,12 +1,13 @@
-package main 
+package main
 
 import (
 	"log"
 
+	"filmfolk/internals/db"
+	"filmfolk/internals/routes"
+
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
-	"filmfolk/internals/routes"
-	"filmfolk/internals/db"
 )
 
 func init() {
@@ -15,7 +16,7 @@ func init() {
 	}
 
 	//DB function
-	db.InitDB();
+	db.InitDB()
 }
 
 func main() {
@@ -25,12 +26,10 @@ func main() {
 	v1 := router.Group("/api/v1")
 	{
 		routes.SetupAuthRoutes(v1)
+		routes.SetupReviewRoutes(v1)
 	}
 
-
-
-
-	if err := router.Run(":8080");err != nil{
-		log.Fatalf("Server Failed to Start :%v",err)
+	if err := router.Run(":8080"); err != nil {
+		log.Fatalf("Server Failed to Start :%v", err)
 	}
 }
