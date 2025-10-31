@@ -13,9 +13,10 @@ import (
 
 type Config struct {
 	App struct {
-		Name string `mapstructure:"name" validate:"required"`
-		Port int    `mapstructure:"port" validate:"required,min=1,max=65535"`
-		Env  string `mapstructure:"env" validate:"required"` // development, production
+		Name           string   `mapstructure:"name" validate:"required"`
+		Port           int      `mapstructure:"port" validate:"required,min=1,max=65535"`
+		Env            string   `mapstructure:"env" validate:"required"` // development, production
+		AllowedOrigins []string `mapstructure:"allowed_origins"`         // CORS allowed origins
 	} `mapstructure:"app"`
 	Db struct {
 		Host     string `mapstructure:"host" validate:"required"`
@@ -102,6 +103,7 @@ func loadEnvConfig() (*Config, error) {
 	v.BindEnv("app.name", "APP_NAME")
 	v.BindEnv("app.port", "APP_PORT")
 	v.BindEnv("app.env", "APP_ENV")
+	v.BindEnv("app.allowed_origins", "ALLOWED_ORIGINS")
 	v.BindEnv("db.host", "DB_HOST")
 	v.BindEnv("db.port", "DB_PORT")
 	v.BindEnv("db.user", "DB_USER")

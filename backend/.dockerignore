@@ -1,0 +1,31 @@
+# Ignore files and directories that shouldn't be in Docker image
+*.md
+.git
+.gitignore
+.env
+.env.*
+!.env.example
+
+# Build artifacts
+*.exe
+*.out
+server
+
+# IDEs
+.vscode
+.idea
+*.swp
+*.swo
+
+# Testing
+*_test.go
+coverage.out
+
+# Documentation
+docs/
+*.md
+
+# Temporary files
+tmp/
+temp/
+*.log

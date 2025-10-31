@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"filmfolk/internal/config"
-	"filmfolk/internal/models"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -23,10 +22,9 @@ func InitDB(cfg *config.Config) error {
 	// Build PostgreSQL connection string (DSN - Data Source Name)
 	// Format: "host=X user=Y password=Z dbname=W port=N sslmode=disable"
 	dsn := fmt.Sprintf(
-		"host=%s user=%s password=%s dbname=%s port=%d sslmode=%s",
+		"host=%s user=%s dbname=%s port=%d sslmode=%s",
 		cfg.Db.Host,
 		cfg.Db.User,
-		cfg.Db.Password,
 		cfg.Db.DBName,
 		cfg.Db.Port,
 		cfg.Db.SSLMode,
@@ -69,59 +67,6 @@ func InitDB(cfg *config.Config) error {
 	sqlDB.SetConnMaxLifetime(time.Hour) // Close connections after 1 hour
 
 	log.Println("Database connection established successfully")
-	return nil
-}
-
-// AutoMigrate runs GORM auto-migrations
-// This creates/updates tables based on your Go models
-// WARNING: Only use in development! In production, use proper migrations
-func AutoMigrate() error {
-	log.Println("Running database auto-migrations...")
-
-	// Register all models for migration
-	// Order matters for foreign keys!
-	err := DB.AutoMigrate(
-		// Core models first
-		&models.UserTitle{},
-		&models.User{},
-		&models.Movie{},
-		&models.Cast{},
-		&models.MovieCast{},
-
-		// Review system
-		&models.Review{},
-		&models.ReviewComment{},
-		&models.ReviewLike{},
-		&models.CommentLike{},
-
-		// User lists
-		&models.UserList{},
-		&models.UserListItem{},
-
-		// Social features
-		&models.Friendship{},
-		&models.DirectMessage{},
-
-		// Communities
-		&models.Community{},
-		&models.CommunityMember{},
-		&models.CommunityMessage{},
-		&models.WorldChatMessage{},
-
-		// Moderation
-		&models.ModerationLog{},
-		&models.UserWarning{},
-
-		// Other
-		&models.Notification{},
-		&models.RefreshToken{},
-	)
-
-	if err != nil {
-		return fmt.Errorf("auto-migration failed: %w", err)
-	}
-
-	log.Println("Auto-migrations completed successfully")
 	return nil
 }
 

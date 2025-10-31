@@ -49,14 +49,28 @@ A comprehensive movie review and social platform built with Go, PostgreSQL, and 
 
 - **Backend**: Go 1.25.2
 - **Web Framework**: Gin
-- **Database**: PostgreSQL
+- **Database**: PostgreSQL 16+
 - **ORM**: GORM
 - **Authentication**: JWT (golang-jwt/jwt)
-- **Password Hashing**: bcrypt
+- **Password Hashing**: bcrypt (cost 12)
+- **Logging**: Zerolog (structured JSON logging)
 - **Configuration**: Viper + godotenv
+- **Containerization**: Docker + Docker Compose
 - **External APIs**:
   - TMDB (movie data)
   - OpenAI (content moderation & sentiment analysis)
+
+### Production-Ready Features
+
+- **Structured Logging**: JSON logging with zerolog for production observability
+- **Rate Limiting**: Per-IP rate limiting (100 req/min global, 10 req/min auth)
+- **Security Headers**: CSP, X-Frame-Options, HSTS, XSS Protection
+- **CORS**: Configurable origin whitelisting for production
+- **Health Checks**: Multiple endpoints for Kubernetes/Docker health probes
+- **Graceful Shutdown**: Signal handling for zero-downtime deployments
+- **Request Tracing**: Unique request IDs for distributed tracing
+- **Docker Support**: Multi-stage builds, non-root user, health checks
+- **Environment-based Config**: Full support for env vars and secrets management
 
 ## Project Structure
 
@@ -103,15 +117,48 @@ filmfolk/
 
 - Go 1.25.2 or higher
 - PostgreSQL 14+
+- Docker & Docker Compose (optional, recommended)
+- Make (optional, for convenience commands)
 - (Optional) TMDB API key
 - (Optional) OpenAI API key
 
-### Installation
+### Quick Start with Docker (Recommended)
 
 1. **Clone the repository**
 ```bash
 git clone <your-repo-url>
-cd filmfolk
+cd filmfolk/backend
+```
+
+2. **Configure environment**
+```bash
+# Copy example env file
+cp .env.example .env
+
+# Edit .env with your settings
+nano .env
+```
+
+3. **Start with Docker Compose**
+```bash
+# Build and start all services (API + PostgreSQL)
+docker-compose up -d
+
+# View logs
+docker-compose logs -f api
+
+# Stop services
+docker-compose down
+```
+
+The API will be available at http://localhost:8080
+
+### Local Development (Without Docker)
+
+1. **Clone the repository**
+```bash
+git clone <your-repo-url>
+cd filmfolk/backend
 ```
 
 2. **Install dependencies**
@@ -124,8 +171,8 @@ go mod download
 # Create database
 createdb filmfolk
 
-# Run schema migration
-psql filmfolk < migrations/001_initial_schema.sql
+# Run migrations
+go run cmd/migrate/main.go
 ```
 
 4. **Configure environment**
@@ -139,15 +186,37 @@ cp .env.example .env
 
 5. **Run the server**
 ```bash
-# Development mode (with auto-migrations)
+# Using Make
+make run
+
+# Or directly with go
 go run cmd/server/main.go
 
 # Or build and run
-go build -o filmfolk cmd/server/main.go
-./filmfolk
+make build
+./bin/server
 ```
 
 The server will start on http://localhost:8080
+
+### Using Makefile Commands
+
+The project includes a Makefile for common tasks:
+
+```bash
+make help              # Show all available commands
+make run               # Run the application locally
+make build             # Build the application
+make test              # Run tests
+make test-coverage     # Run tests with coverage
+make docker-up         # Start services with Docker
+make docker-down       # Stop Docker services
+make docker-logs       # View API logs
+make migrate-up        # Run database migrations
+make fmt               # Format code
+make lint              # Run linter
+make clean             # Clean build artifacts
+```
 
 ### Configuration
 
@@ -231,9 +300,42 @@ GET /api/v1/auth/me
 Authorization: Bearer <access_token>
 ```
 
-### Health Check
+### Health Check Endpoints
+
 ```http
+# Basic health check
 GET /health
+
+# Detailed health check with dependencies
+GET /health/detailed
+
+# Kubernetes readiness probe
+GET /health/ready
+
+# Kubernetes liveness probe
+GET /health/live
+```
+
+Response (detailed):
+```json
+{
+  "status": "healthy",
+  "timestamp": "2025-10-31T10:00:00Z",
+  "service": "filmfolk-api",
+  "version": "1.0.0",
+  "uptime": "2h30m15s",
+  "checks": {
+    "database": {
+      "status": "healthy",
+      "message": "Database connection is healthy",
+      "latency": "2.5ms"
+    },
+    "memory": {
+      "status": "healthy",
+      "message": "Memory usage is normal (Alloc: 45MB, Sys: 72MB)"
+    }
+  }
+}
 ```
 
 ## Authentication Flow
@@ -254,17 +356,29 @@ GET /health
 
 ### Running Migrations
 
-Development (auto-migrate):
+This project uses `golang-migrate` to manage database schema changes. The migration files are located in the `migrations` directory.
+
+First, ensure all dependencies are up to date by running:
 ```bash
-# Set APP_ENV=development in config
-# Migrations run automatically on startup
-go run cmd/server/main.go
+go mod tidy
 ```
 
-Production (manual SQL):
+To run the migrations, use the `migrate` command:
+
 ```bash
-psql filmfolk < migrations/001_initial_schema.sql
+# Apply all available migrations
+go run cmd/migrate/main.go up
+
+# Roll back the last migration
+go run cmd/migrate/main.go down
+
+# Drop the entire database (use with caution!)
+go run cmd/migrate/main.go drop
+
+# Check the current migration version
+go run cmd/migrate/main.go version
 ```
+
 
 ### Database Schema
 

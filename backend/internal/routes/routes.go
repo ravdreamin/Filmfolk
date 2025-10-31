@@ -15,12 +15,14 @@ func SetupRoutes(router *gin.Engine, cfg *config.Config) {
 	authHandler := handlers.NewAuthHandler(cfg)
 	movieHandler := handlers.NewMovieHandler()
 	reviewHandler := handlers.NewReviewHandler()
+	healthHandler := handlers.NewHealthHandler()
 
 	// API v1 group
 	v1 := router.Group("/api/v1")
 	{
 		// Public routes - no authentication required
 		auth := v1.Group("/auth")
+		auth.Use(middleware.AuthRateLimitMiddleware()) // Stricter rate limiting for auth
 		{
 			auth.POST("/register", authHandler.Register)
 			auth.POST("/login", authHandler.Login)
@@ -109,11 +111,9 @@ func SetupRoutes(router *gin.Engine, cfg *config.Config) {
 		}
 	}
 
-	// Health check endpoint (no auth required)
-	router.GET("/health", func(c *gin.Context) {
-		c.JSON(200, gin.H{
-			"status": "ok",
-			"service": "filmfolk-api",
-		})
-	})
+	// Health check endpoints (no auth required, no rate limiting)
+	router.GET("/health", healthHandler.HealthCheck)
+	router.GET("/health/detailed", healthHandler.DetailedHealthCheck)
+	router.GET("/health/ready", healthHandler.ReadinessCheck)
+	router.GET("/health/live", healthHandler.LivenessCheck)
 }
