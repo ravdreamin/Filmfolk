@@ -152,12 +152,10 @@ func (h *AuthHandler) GetCurrentUser(c *gin.Context) {
 		return
 	}
 
-	// In a real app, you'd fetch fresh user data from DB
-	// For now, we'll return what's in the token
+	// Return user info from token
 	c.JSON(http.StatusOK, gin.H{
 		"id":       userID,
 		"username": c.GetString("username"),
 		"email":    c.GetString("email"),
-		"role":     c.GetString("userRole"),
 	})
 }

@@ -18,90 +18,12 @@ func NewMovieService() *MovieService {
 	return &MovieService{}
 }
 
-// CreateMovieInput represents data for creating a movie
-type CreateMovieInput struct {
-	Title          string   `json:"title" binding:"required,max=500"`
-	ReleaseYear    int      `json:"release_year" binding:"required,min=1800,max=2100"`
-	Genres         []string `json:"genres"`
-	Summary        string   `json:"summary"`
-	PosterURL      string   `json:"poster_url"`
-	BackdropURL    string   `json:"backdrop_url"`
-	RuntimeMinutes int      `json:"runtime_minutes"`
-	Language       string   `json:"language"`
-	TmdbID         *int     `json:"tmdb_id"`
-	ImdbID         *string  `json:"imdb_id"`
-}
 
-// UpdateMovieInput represents data for updating a movie
-type UpdateMovieInput struct {
-	Title          *string  `json:"title,omitempty"`
-	ReleaseYear    *int     `json:"release_year,omitempty"`
-	Genres         []string `json:"genres,omitempty"`
-	Summary        *string  `json:"summary,omitempty"`
-	PosterURL      *string  `json:"poster_url,omitempty"`
-	BackdropURL    *string  `json:"backdrop_url,omitempty"`
-	RuntimeMinutes *int     `json:"runtime_minutes,omitempty"`
-	Language       *string  `json:"language,omitempty"`
-}
-
-// CreateMovie creates a new movie (requires moderation approval)
-func (s *MovieService) CreateMovie(input CreateMovieInput, userID uint64) (*models.Movie, error) {
-	// Check if movie already exists
-	var existing models.Movie
-	err := db.DB.Where("title = ? AND release_year = ?", input.Title, input.ReleaseYear).First(&existing).Error
-	if err == nil {
-		return nil, errors.New("movie already exists")
-	}
-	if !errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, fmt.Errorf("database error: %w", err)
-	}
-
-	// Create movie with pending status
-	movie := models.Movie{
-		Title:             input.Title,
-		ReleaseYear:       input.ReleaseYear,
-		Genres:            input.Genres,
-		Status:            models.MovieStatusPending,
-		SubmittedByUserID: &userID,
-	}
-
-	// Optional fields
-	if input.Summary != "" {
-		movie.Summary = &input.Summary
-	}
-	if input.PosterURL != "" {
-		movie.PosterURL = &input.PosterURL
-	}
-	if input.BackdropURL != "" {
-		movie.BackdropURL = &input.BackdropURL
-	}
-	if input.RuntimeMinutes > 0 {
-		movie.RuntimeMinutes = &input.RuntimeMinutes
-	}
-	if input.Language != "" {
-		movie.Language = &input.Language
-	}
-	if input.TmdbID != nil {
-		movie.TmdbID = input.TmdbID
-	}
-	if input.ImdbID != nil {
-		movie.ImdbID = input.ImdbID
-	}
-
-	if err := db.DB.Create(&movie).Error; err != nil {
-		return nil, fmt.Errorf("failed to create movie: %w", err)
-	}
-
-	return &movie, nil
-}
 
 // GetMovie retrieves a movie by ID
 func (s *MovieService) GetMovie(movieID uint64) (*models.Movie, error) {
 	var movie models.Movie
-	err := db.DB.Preload("SubmittedBy").
-		Preload("ApprovedBy").
-		Preload("MovieCasts.Cast").
-		First(&movie, movieID).Error
+	err := db.DB.First(&movie, movieID).Error
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -115,13 +37,12 @@ func (s *MovieService) GetMovie(movieID uint64) (*models.Movie, error) {
 
 // ListMoviesFilter represents filter options for listing movies
 type ListMoviesFilter struct {
-	Status      *models.MovieStatus `form:"status"`
-	Genre       *string             `form:"genre"`
-	Year        *int                `form:"year"`
-	Search      *string             `form:"search"`
-	SortBy      string              `form:"sort_by"` // rating, year, title, reviews
-	Page        int                 `form:"page"`
-	PageSize    int                 `form:"page_size"`
+	Genre    *string `form:"genre"`
+	Year     *int    `form:"year"`
+	Search   *string `form:"search"`
+	SortBy   string  `form:"sort_by"` // rating, year, title, reviews
+	Page     int     `form:"page"`
+	PageSize int     `form:"page_size"`
 }
 
 // ListMovies retrieves movies with filters and pagination
@@ -137,13 +58,6 @@ func (s *MovieService) ListMovies(filter ListMoviesFilter) ([]models.Movie, int6
 	query := db.DB.Model(&models.Movie{})
 
 	// Apply filters
-	if filter.Status != nil {
-		query = query.Where("status = ?", *filter.Status)
-	} else {
-		// Default: only show approved movies
-		query = query.Where("status = ?", models.MovieStatusApproved)
-	}
-
 	if filter.Genre != nil && *filter.Genre != "" {
 		query = query.Where("? = ANY(genres)", *filter.Genre)
 	}
@@ -188,7 +102,19 @@ func (s *MovieService) ListMovies(filter ListMoviesFilter) ([]models.Movie, int6
 	return movies, total, nil
 }
 
-// UpdateMovie updates movie information (moderator/admin only)
+// UpdateMovieInput represents input for updating a movie
+type UpdateMovieInput struct {
+	Title          *string  `json:"title"`
+	ReleaseYear    *int     `json:"release_year"`
+	Genres         []string `json:"genres"`
+	Summary        *string  `json:"summary"`
+	PosterURL      *string  `json:"poster_url"`
+	BackdropURL    *string  `json:"backdrop_url"`
+	RuntimeMinutes *int     `json:"runtime_minutes"`
+	Language       *string  `json:"language"`
+}
+
+// UpdateMovie updates movie information
 func (s *MovieService) UpdateMovie(movieID uint64, input UpdateMovieInput) (*models.Movie, error) {
 	var movie models.Movie
 	if err := db.DB.First(&movie, movieID).Error; err != nil {
@@ -237,59 +163,7 @@ func (s *MovieService) UpdateMovie(movieID uint64, input UpdateMovieInput) (*mod
 	return &movie, nil
 }
 
-// ApproveMovie approves a pending movie (moderator/admin only)
-func (s *MovieService) ApproveMovie(movieID uint64, approverID uint64) (*models.Movie, error) {
-	var movie models.Movie
-	if err := db.DB.First(&movie, movieID).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, errors.New("movie not found")
-		}
-		return nil, fmt.Errorf("database error: %w", err)
-	}
 
-	if movie.Status == models.MovieStatusApproved {
-		return nil, errors.New("movie already approved")
-	}
-
-	movie.Status = models.MovieStatusApproved
-	movie.ApprovedByUserID = &approverID
-
-	if err := db.DB.Save(&movie).Error; err != nil {
-		return nil, fmt.Errorf("failed to approve movie: %w", err)
-	}
-
-	return &movie, nil
-}
-
-// RejectMovie rejects a pending movie (moderator/admin only)
-func (s *MovieService) RejectMovie(movieID uint64) error {
-	var movie models.Movie
-	if err := db.DB.First(&movie, movieID).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return errors.New("movie not found")
-		}
-		return fmt.Errorf("database error: %w", err)
-	}
-
-	if movie.Status == models.MovieStatusApproved {
-		return errors.New("cannot reject approved movie")
-	}
-
-	movie.Status = models.MovieStatusRejected
-	return db.DB.Save(&movie).Error
-}
-
-// DeleteMovie deletes a movie (admin only)
-func (s *MovieService) DeleteMovie(movieID uint64) error {
-	result := db.DB.Delete(&models.Movie{}, movieID)
-	if result.Error != nil {
-		return fmt.Errorf("failed to delete movie: %w", result.Error)
-	}
-	if result.RowsAffected == 0 {
-		return errors.New("movie not found")
-	}
-	return nil
-}
 
 // RecalculateMovieStats recalculates average rating and review count
 func (s *MovieService) RecalculateMovieStats(movieID uint64) error {
@@ -300,7 +174,7 @@ func (s *MovieService) RecalculateMovieStats(movieID uint64) error {
 
 	err := db.DB.Model(&models.Review{}).
 		Select("AVG(rating) as avg_rating, COUNT(*) as review_count").
-		Where("movie_id = ? AND status = ?", movieID, models.ReviewStatusPublished).
+		Where("movie_id = ?", movieID).
 		Scan(&stats).Error
 
 	if err != nil {

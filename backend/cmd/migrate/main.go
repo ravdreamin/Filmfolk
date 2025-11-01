@@ -6,23 +6,24 @@ import (
 	"os"
 
 	"filmfolk/internal/config"
+
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
-	"github.com/lib/pq"
 )
 
 func main() {
 	// 1. Load configuration
-	cfg, _, err := config.LoadConfig()
+	cfg, err := config.LoadConfig()
 	if err != nil {
 		log.Fatalf("Configuration Loading Error: %v", err)
 	}
 
 	// 2. Build database connection string
 	dsn := fmt.Sprintf(
-		"postgres://%s@%s:%d/%s?sslmode=%s",
+		"postgres://%s:%s@%s:%d/%s?sslmode=%s",
 		cfg.Db.User,
+		cfg.Db.Password,
 		cfg.Db.Host,
 		cfg.Db.Port,
 		cfg.Db.DBName,

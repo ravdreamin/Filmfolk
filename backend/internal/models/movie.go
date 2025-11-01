@@ -26,12 +26,12 @@ type Movie struct {
 	Language       *string        `gorm:"size:50" json:"language,omitempty"`
 
 	// External API integration
-	TmdbID  *int    `gorm:"uniqueIndex" json:"tmdb_id,omitempty"`
-	ImdbID  *string `gorm:"size:20" json:"imdb_id,omitempty"`
+	TmdbID *int    `gorm:"uniqueIndex" json:"tmdb_id,omitempty"`
+	ImdbID *string `gorm:"size:20" json:"imdb_id,omitempty"`
 
-	Status             MovieStatus `gorm:"type:movie_status;not null;default:pending_approval" json:"status"`
-	SubmittedByUserID  *uint64     `json:"submitted_by_user_id,omitempty"`
-	ApprovedByUserID   *uint64     `json:"approved_by_user_id,omitempty"`
+	Status            MovieStatus `gorm:"type:movie_status;not null;default:pending_approval" json:"status"`
+	SubmittedByUserID *uint64     `json:"submitted_by_user_id,omitempty"`
+	ApprovedByUserID  *uint64     `json:"approved_by_user_id,omitempty"`
 
 	// Aggregated stats
 	AverageRating *float64 `gorm:"type:decimal(3,2)" json:"average_rating,omitempty"`
@@ -41,11 +41,9 @@ type Movie struct {
 	UpdatedAt time.Time `json:"updated_at"`
 
 	// Relationships
-	SubmittedBy *User        `gorm:"foreignKey:SubmittedByUserID" json:"submitted_by,omitempty"`
-	ApprovedBy  *User        `gorm:"foreignKey:ApprovedByUserID" json:"approved_by,omitempty"`
-	Reviews     []Review     `gorm:"foreignKey:MovieID" json:"-"`
-	MovieCasts  []MovieCast  `gorm:"foreignKey:MovieID" json:"-"`
-	Casts       []Cast       `gorm:"many2many:movie_casts" json:"casts,omitempty"`
+	SubmittedBy *User    `gorm:"foreignKey:SubmittedByUserID" json:"submitted_by,omitempty"`
+	ApprovedBy  *User    `gorm:"foreignKey:ApprovedByUserID" json:"approved_by,omitempty"`
+	Reviews     []Review `gorm:"foreignKey:MovieID" json:"-"`
 }
 
 func (Movie) TableName() string {

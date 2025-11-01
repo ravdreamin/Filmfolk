@@ -22,11 +22,11 @@ import (
 func main() {
 	// 1. Load configuration
 	log.Println("Loading configuration...")
-	cfg, source, err := config.LoadConfig()
+	cfg, err := config.LoadConfig()
 	if err != nil {
 		log.Fatalf("Configuration Loading Error: %v", err)
 	}
-	log.Printf("Configuration loaded from: %s", source)
+	log.Printf("Configuration loaded from environment variables")
 	log.Printf("Environment: %s", cfg.App.Env)
 
 	// 2. Initialize structured logging

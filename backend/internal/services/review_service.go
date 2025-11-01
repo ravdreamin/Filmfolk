@@ -50,7 +50,7 @@ func (s *ReviewService) CreateReview(input CreateReviewInput, userID uint64) (*m
 		return nil, fmt.Errorf("database error: %w", err)
 	}
 
-	// Verify movie exists and is approved
+	// Verify movie exists
 	var movie models.Movie
 	if err := db.DB.First(&movie, input.MovieID).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -59,22 +59,13 @@ func (s *ReviewService) CreateReview(input CreateReviewInput, userID uint64) (*m
 		return nil, fmt.Errorf("database error: %w", err)
 	}
 
-	if movie.Status != models.MovieStatusApproved {
-		return nil, errors.New("cannot review unapproved movie")
-	}
-
 	// Create review
 	review := models.Review{
 		UserID:     userID,
 		MovieID:    input.MovieID,
 		Rating:     input.Rating,
 		ReviewText: input.ReviewText,
-		Status:     models.ReviewStatusPublished, // Will be changed if AI flags it
 	}
-
-	// TODO: AI content moderation would go here
-	// If flagged, set: review.Status = models.ReviewStatusPending
-	// review.AIFlagged = true, review.AIFlagReason = "..."
 
 	if err := db.DB.Create(&review).Error; err != nil {
 		return nil, fmt.Errorf("failed to create review: %w", err)
@@ -83,10 +74,6 @@ func (s *ReviewService) CreateReview(input CreateReviewInput, userID uint64) (*m
 	// Update movie stats
 	movieService := NewMovieService()
 	movieService.RecalculateMovieStats(input.MovieID)
-
-	// Update user stats
-	db.DB.Model(&models.User{}).Where("id = ?", userID).
-		UpdateColumn("total_reviews", gorm.Expr("total_reviews + 1"))
 
 	// Load user relation
 	db.DB.Preload("User").First(&review, review.ID)
@@ -223,8 +210,8 @@ func (s *ReviewService) UpdateReview(reviewID, userID uint64, input UpdateReview
 	return &review, nil
 }
 
-// DeleteReview deletes a review
-func (s *ReviewService) DeleteReview(reviewID, userID uint64, userRole models.UserRole) error {
+// DeleteReview deletes a review (only review owner)
+func (s *ReviewService) DeleteReview(reviewID, userID uint64) error {
 	var review models.Review
 	if err := db.DB.First(&review, reviewID).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -233,11 +220,8 @@ func (s *ReviewService) DeleteReview(reviewID, userID uint64, userRole models.Us
 		return fmt.Errorf("database error: %w", err)
 	}
 
-	// Check permission (owner, moderator, or admin)
-	isOwner := review.UserID == userID
-	isModerator := userRole == models.RoleModerator || userRole == models.RoleAdmin
-
-	if !isOwner && !isModerator {
+	// Check permission (only owner can delete)
+	if review.UserID != userID {
 		return errors.New("you don't have permission to delete this review")
 	}
 
@@ -249,10 +233,6 @@ func (s *ReviewService) DeleteReview(reviewID, userID uint64, userRole models.Us
 	// Update movie stats
 	movieService := NewMovieService()
 	movieService.RecalculateMovieStats(movieID)
-
-	// Update user stats
-	db.DB.Model(&models.User{}).Where("id = ?", review.UserID).
-		UpdateColumn("total_reviews", gorm.Expr("total_reviews - 1"))
 
 	return nil
 }
@@ -347,18 +327,14 @@ func (s *ReviewService) CreateComment(input CreateCommentInput, userID uint64) (
 	// Update review comment count
 	db.DB.Model(&review).UpdateColumn("comments_count", gorm.Expr("comments_count + 1"))
 
-	// Update user stats
-	db.DB.Model(&models.User{}).Where("id = ?", userID).
-		UpdateColumn("total_comments", gorm.Expr("total_comments + 1"))
-
 	// Load user relation
 	db.DB.Preload("User").First(&comment, comment.ID)
 
 	return &comment, nil
 }
 
-// DeleteComment deletes a comment
-func (s *ReviewService) DeleteComment(commentID, userID uint64, userRole models.UserRole) error {
+// DeleteComment deletes a comment (only comment owner)
+func (s *ReviewService) DeleteComment(commentID, userID uint64) error {
 	var comment models.ReviewComment
 	if err := db.DB.First(&comment, commentID).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -367,11 +343,8 @@ func (s *ReviewService) DeleteComment(commentID, userID uint64, userRole models.
 		return fmt.Errorf("database error: %w", err)
 	}
 
-	// Check permission
-	isOwner := comment.UserID == userID
-	isModerator := userRole == models.RoleModerator || userRole == models.RoleAdmin
-
-	if !isOwner && !isModerator {
+	// Check permission (only owner can delete)
+	if comment.UserID != userID {
 		return errors.New("you don't have permission to delete this comment")
 	}
 
@@ -383,10 +356,6 @@ func (s *ReviewService) DeleteComment(commentID, userID uint64, userRole models.
 	// Update review comment count
 	db.DB.Model(&models.Review{}).Where("id = ?", reviewID).
 		UpdateColumn("comments_count", gorm.Expr("comments_count - 1"))
-
-	// Update user stats
-	db.DB.Model(&models.User{}).Where("id = ?", comment.UserID).
-		UpdateColumn("total_comments", gorm.Expr("total_comments - 1"))
 
 	return nil
 }

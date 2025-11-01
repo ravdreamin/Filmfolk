@@ -38,10 +38,9 @@ type LoginInput struct {
 
 // AuthResponse contains tokens returned after successful auth
 type AuthResponse struct {
-	AccessToken  string            `json:"access_token"`
-	RefreshToken string            `json:"refresh_token"`
-	User         models.UserPublic `json:"user"`
-	ExpiresIn    int               `json:"expires_in"` // seconds until access token expires
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
+	ExpiresIn    int    `json:"expires_in"` // seconds until access token expires
 }
 
 // Register creates a new user account
@@ -76,7 +75,6 @@ func (s *AuthService) Register(input RegisterInput) (*AuthResponse, error) {
 		Username:     input.Username,
 		Email:        input.Email,
 		PasswordHash: &hashedPassword,
-		Role:         models.RoleUser,
 		AuthProvider: models.AuthEmail,
 		Status:       models.StatusActive,
 	}
@@ -168,7 +166,6 @@ func (s *AuthService) RefreshAccessToken(refreshTokenString string) (*AuthRespon
 	return &AuthResponse{
 		AccessToken:  accessToken,
 		RefreshToken: refreshTokenString,
-		User:         user.ToPublic(),
 		ExpiresIn:    s.cfg.Jwt.AccessTokenTTL * 60,
 	}, nil
 }
@@ -216,7 +213,6 @@ func (s *AuthService) generateAuthResponse(user *models.User) (*AuthResponse, er
 	return &AuthResponse{
 		AccessToken:  accessToken,
 		RefreshToken: refreshTokenString,
-		User:         user.ToPublic(),
 		ExpiresIn:    s.cfg.Jwt.AccessTokenTTL * 60, // convert minutes to seconds
 	}, nil
 }

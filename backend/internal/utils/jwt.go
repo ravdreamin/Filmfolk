@@ -14,10 +14,9 @@ import (
 // This is what gets encoded INTO the token
 // Think of it like the "payload" of the token
 type JWTClaims struct {
-	UserID   uint64          `json:"user_id"`
-	Username string          `json:"username"`
-	Email    string          `json:"email"`
-	Role     models.UserRole `json:"role"`
+	UserID   uint64 `json:"user_id"`
+	Username string `json:"username"`
+	Email    string `json:"email"`
 	jwt.RegisteredClaims
 }
 
@@ -42,7 +41,6 @@ func GenerateAccessToken(user *models.User, ttlMinutes int) (string, error) {
 		UserID:   user.ID,
 		Username: user.Username,
 		Email:    user.Email,
-		Role:     user.Role,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Duration(ttlMinutes) * time.Minute)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),

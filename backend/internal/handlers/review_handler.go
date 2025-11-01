@@ -113,9 +113,8 @@ func (h *ReviewHandler) DeleteReview(c *gin.Context) {
 	}
 
 	userID := middleware.GetUserID(c)
-	userRole := middleware.GetUserRole(c)
 
-	if err := h.reviewService.DeleteReview(id, userID, userRole); err != nil {
+	if err := h.reviewService.DeleteReview(id, userID); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -184,9 +183,8 @@ func (h *ReviewHandler) DeleteComment(c *gin.Context) {
 	}
 
 	userID := middleware.GetUserID(c)
-	userRole := middleware.GetUserRole(c)
 
-	if err := h.reviewService.DeleteComment(id, userID, userRole); err != nil {
+	if err := h.reviewService.DeleteComment(id, userID); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}

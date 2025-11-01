@@ -35,9 +35,6 @@ type Config struct {
 		GoogleClientID     string `mapstructure:"google_client_id"`
 		GoogleClientSecret string `mapstructure:"google_client_secret"`
 		GoogleRedirectURL  string `mapstructure:"google_redirect_url"`
-		FacebookClientID     string `mapstructure:"facebook_client_id"`
-		FacebookClientSecret string `mapstructure:"facebook_client_secret"`
-		FacebookRedirectURL  string `mapstructure:"facebook_redirect_url"`
 	} `mapstructure:"oauth"`
 	TMDB struct {
 		APIKey string `mapstructure:"api_key"` // For movie data
@@ -47,50 +44,18 @@ type Config struct {
 	} `mapstructure:"ai"`
 }
 
-type ConfigSource string
-
-const (
-	SourceYAML ConfigSource = "YAML"
-	SourceEnv  ConfigSource = "Environment Variables"
-)
-
-func LoadConfig() (*Config, ConfigSource, error) {
-	yamlConfig, err := loadYamlConfig()
-	if err == nil && yamlConfig != nil {
-		if err := validateConfig(yamlConfig); err != nil {
-			return nil, SourceYAML, fmt.Errorf("YAML configuration validation failed: %w", err)
-		}
-		return yamlConfig, SourceYAML, nil
-	}
+func LoadConfig() (*Config, error) {
 
 	envConfig, err := loadEnvConfig()
 	if err != nil {
-		return nil, SourceEnv, fmt.Errorf("environment configuration loading failed: %w", err)
+		return nil, fmt.Errorf("environment configuration loading failed: %w", err)
 	}
 
 	if err := validateConfig(envConfig); err != nil {
-		return nil, SourceEnv, fmt.Errorf("environment configuration validation failed: %w", err)
+		return nil, fmt.Errorf("environment configuration validation failed: %w", err)
 	}
 
-	return envConfig, SourceEnv, nil
-}
-
-func loadYamlConfig() (*Config, error) {
-	v := viper.New()
-	v.SetConfigName("config")
-	v.SetConfigType("yaml")
-	v.AddConfigPath("./configs")
-
-	if err := v.ReadInConfig(); err != nil {
-		return nil, fmt.Errorf("could not read YAML config: %w", err)
-	}
-
-	var cfg Config
-	if err := v.Unmarshal(&cfg); err != nil {
-		return nil, fmt.Errorf("error unmarshaling YAML config: %w", err)
-	}
-
-	return &cfg, nil
+	return envConfig, nil
 }
 
 func loadEnvConfig() (*Config, error) {

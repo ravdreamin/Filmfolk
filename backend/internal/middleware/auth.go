@@ -4,7 +4,6 @@ import (
 	"net/http"
 	"strings"
 
-	"filmfolk/internal/models"
 	"filmfolk/internal/utils"
 
 	"github.com/gin-gonic/gin"
@@ -46,7 +45,6 @@ func AuthMiddleware() gin.HandlerFunc {
 		c.Set("userID", claims.UserID)
 		c.Set("username", claims.Username)
 		c.Set("email", claims.Email)
-		c.Set("userRole", claims.Role)
 
 		// 5. Continue to next handler
 		c.Next()
@@ -84,60 +82,13 @@ func OptionalAuthMiddleware() gin.HandlerFunc {
 		c.Set("userID", claims.UserID)
 		c.Set("username", claims.Username)
 		c.Set("email", claims.Email)
-		c.Set("userRole", claims.Role)
+
 
 		c.Next()
 	}
 }
 
-// RequireRole middleware checks if user has required role
-// Must be used AFTER AuthMiddleware
-// Example: RequireRole(models.RoleModerator) - only moderators/admins can access
-func RequireRole(minRole models.UserRole) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		// Get user role from context (set by AuthMiddleware)
-		userRoleValue, exists := c.Get("userRole")
-		if !exists {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authentication required"})
-			c.Abort()
-			return
-		}
 
-		userRole, ok := userRoleValue.(models.UserRole)
-		if !ok {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid role format"})
-			c.Abort()
-			return
-		}
-
-		// Check role hierarchy: user < moderator < admin
-		if !hasRequiredRole(userRole, minRole) {
-			c.JSON(http.StatusForbidden, gin.H{"error": "Insufficient permissions"})
-			c.Abort()
-			return
-		}
-
-		c.Next()
-	}
-}
-
-// hasRequiredRole checks role hierarchy
-func hasRequiredRole(userRole, requiredRole models.UserRole) bool {
-	roleHierarchy := map[models.UserRole]int{
-		models.RoleUser:      1,
-		models.RoleModerator: 2,
-		models.RoleAdmin:     3,
-	}
-
-	userLevel, userExists := roleHierarchy[userRole]
-	requiredLevel, requiredExists := roleHierarchy[requiredRole]
-
-	if !userExists || !requiredExists {
-		return false
-	}
-
-	return userLevel >= requiredLevel
-}
 
 // GetUserID is a helper to extract user ID from context
 // Returns 0 if not authenticated
@@ -150,15 +101,6 @@ func GetUserID(c *gin.Context) uint64 {
 	return 0
 }
 
-// GetUserRole is a helper to extract user role from context
-func GetUserRole(c *gin.Context) models.UserRole {
-	if role, exists := c.Get("userRole"); exists {
-		if r, ok := role.(models.UserRole); ok {
-			return r
-		}
-	}
-	return models.RoleUser
-}
 
 // IsAuthenticated checks if the current request is authenticated
 func IsAuthenticated(c *gin.Context) bool {
